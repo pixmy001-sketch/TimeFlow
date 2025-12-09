@@ -5,18 +5,21 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>TimeFlow Pro</title>
     
-    <!-- React & ReactDOM (Core Libraries) -->
+    <!-- React & ReactDOM -->
     <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
     
-    <!-- Babel (To convert React code to JavaScript) -->
+    <!-- Babel -->
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     
-    <!-- Tailwind CSS (For Styling) -->
+    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- html2pdf.js for PDF Generation -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     
     <!-- Fonts -->
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
     
     <style>
         body { font-family: 'Inter', sans-serif; -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
@@ -27,45 +30,45 @@
             input, select, textarea { font-size: 16px !important; }
         }
 
-        /* Custom Scrollbar */
-        .custom-scrollbar::-webkit-scrollbar { width: 4px; }
+        .custom-scrollbar::-webkit-scrollbar { width: 3px; }
         .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(156, 163, 175, 0.5); border-radius: 10px; }
         
-        /* Animations */
-        @keyframes slideIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-        .animate-slide-in { animation: slideIn 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+        @keyframes slideIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+        .animate-slide-in { animation: slideIn 0.2s ease-out forwards; }
         
         @keyframes popIn { 0% { transform: scale(0.95); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
-        .animate-pop-in { animation: popIn 0.15s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
+        .animate-pop-in { animation: popIn 0.1s ease-out forwards; }
+
+        .progress-bar { transition: width 0.5s ease-in-out; }
     </style>
 </head>
 <body>
     <div id="root">
-        <!-- Loading State -->
-        <div class="h-screen flex flex-col items-center justify-center text-gray-500 gap-4">
-            <div class="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
-            <p>Loading TimeFlow Pro...</p>
+        <div class="h-screen flex flex-col items-center justify-center text-gray-500 gap-3">
+            <div class="w-6 h-6 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+            <p class="text-sm">Loading TimeFlow...</p>
         </div>
     </div>
 
     <script type="text/babel">
         const { useState, useEffect, useRef, useMemo } = React;
 
-        // --- Icons (SVG) ---
-        // Reduced size slightly for mobile optimization
+        // --- Icons (Compact) ---
         const Icons = {
-            plus: <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5"><path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4"/></svg>,
-            minus: <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5"><path strokeLinecap="round" strokeLinejoin="round" d="M20 12H4"/></svg>,
-            trash: <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>,
-            edit: <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>,
-            download: <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>,
-            moon: <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/></svg>,
-            sun: <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"/></svg>,
-            close: <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>,
-            folder: <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M5 19a2 2 0 01-2-2V7a2 2 0 012-2h4l2 2h4a2 2 0 012 2v1M5 19h14a2 2 0 002-2v-5a2 2 0 00-2-2H9a2 2 0 00-2 2v5a2 2 0 01-2 2z"/></svg>,
-            check: <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5"><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7"/></svg>,
-            clock: <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+            plus: <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5"><path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4"/></svg>,
+            minus: <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5"><path strokeLinecap="round" strokeLinejoin="round" d="M20 12H4"/></svg>,
+            trash: <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>,
+            edit: <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>,
+            download: <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>,
+            moon: <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/></svg>,
+            sun: <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"/></svg>,
+            close: <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>,
+            folder: <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M5 19a2 2 0 01-2-2V7a2 2 0 012-2h4l2 2h4a2 2 0 012 2v1M5 19h14a2 2 0 002-2v-5a2 2 0 00-2-2H9a2 2 0 00-2 2v5a2 2 0 01-2 2z"/></svg>,
+            check: <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5"><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7"/></svg>,
+            clock: <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>,
+            settings: <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>,
+            pdf: <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" /></svg>
         };
 
         // --- Helpers ---
@@ -124,32 +127,44 @@
             URL.revokeObjectURL(a.href);
         };
 
-        const generateHTMLReport = (session, total) => {
+        const generatePrintableHTML = (session, total, costInfo, targetInfo) => {
             const rowsHtml = session.rows.map((row, i) => `
                 <tr style="background-color: ${i % 2 === 0 ? '#f8fafc' : '#ffffff'};">
-                    <td style="padding: 12px; border-bottom: 1px solid #e2e8f0; text-align: center;">
-                        <span style="display: inline-block; padding: 4px 8px; border-radius: 12px; background: ${row.operator === '+' ? '#ecfdf5' : '#fff1f2'}; color: ${row.operator === '+' ? '#059669' : '#e11d48'}; font-weight: bold;">${row.operator}</span>
+                    <td style="padding: 8px; border-bottom: 1px solid #e2e8f0; text-align: center; color: #64748b; font-size: 10px;">${i + 1}</td>
+                    <td style="padding: 8px; border-bottom: 1px solid #e2e8f0; text-align: center;">
+                        <span style="font-size: 10px; padding: 2px 6px; border-radius: 4px; background: ${row.operator === '+' ? '#ecfdf5' : '#fff1f2'}; color: ${row.operator === '+' ? '#059669' : '#e11d48'}; font-weight: bold;">${row.operator}</span>
                     </td>
-                    <td style="padding: 12px; border-bottom: 1px solid #e2e8f0; color: #475569;">${row.label || '-'}</td>
-                    <td style="padding: 12px; border-bottom: 1px solid #e2e8f0; font-family: monospace; font-size: 16px; font-weight: 600; text-align: right;">${row.value || '00:00:00'}</td>
+                    <td style="padding: 8px; border-bottom: 1px solid #e2e8f0; color: #334155; font-size: 12px;">${row.label || '-'}</td>
+                    <td style="padding: 8px; border-bottom: 1px solid #e2e8f0; font-family: monospace; font-size: 14px; font-weight: 600; text-align: right; color: #0f172a;">${row.value || '00:00:00'}</td>
                 </tr>
             `).join('');
 
-            return `<!DOCTYPE html><html><head><title>${session.title}</title><style>body{font-family:sans-serif;padding:40px;background:#f1f5f9}.container{max-width:600px;margin:0 auto;background:white;border-radius:20px;box-shadow:0 10px 25px rgba(0,0,0,0.1);overflow:hidden}.header{background:#1e293b;color:white;padding:30px;text-align:center}.title{margin:0;font-size:24px}.footer{padding:20px;text-align:right;background:#f8fafc;border-top:1px solid #e2e8f0}.total{font-size:32px;font-family:monospace;font-weight:bold}table{width:100%;border-collapse:collapse}</style></head><body><div class="container"><div class="header"><h1>${session.title}</h1><p>${formatDate(session.lastModified)}</p></div><table>${rowsHtml}</table><div class="footer"><div>Total Duration</div><div class="total">${total}</div></div></div></body></html>`;
-        };
-
-        const generateCSV = (session, total) => {
-            let csv = "Operator,Label,Duration\n";
-            session.rows.forEach(row => { csv += `${row.operator},"${row.label || ''}",${row.value || '00:00:00'}\n`; });
-            csv += `,,Total: ${total}`;
-            return csv;
-        };
-
-        const generateTXT = (session, total) => {
-            let txt = `TimeFlow Pro\nSheet: ${session.title}\nDate: ${formatDate(session.lastModified)}\n----------------\n`;
-            session.rows.forEach(row => { txt += `[${row.operator}] ${row.value.padEnd(10)} ${row.label || ''}\n`; });
-            txt += `----------------\nTOTAL: ${total}`;
-            return txt;
+            return `
+                <div style="font-family: sans-serif; padding: 20px; color: #1e293b;">
+                    <div style="text-align: center; margin-bottom: 20px;">
+                        <h1 style="margin: 0; font-size: 20px; color: #0f172a;">${session.title}</h1>
+                        <p style="margin: 5px 0 0; font-size: 12px; color: #64748b;">${formatDate(session.lastModified)}</p>
+                    </div>
+                    <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px;">
+                        <thead>
+                            <tr style="background: #e2e8f0;">
+                                <th style="padding: 8px; text-align: center; font-size: 10px; text-transform: uppercase;">#</th>
+                                <th style="padding: 8px; text-align: center; font-size: 10px; text-transform: uppercase;">Op</th>
+                                <th style="padding: 8px; text-align: left; font-size: 10px; text-transform: uppercase;">Label</th>
+                                <th style="padding: 8px; text-align: right; font-size: 10px; text-transform: uppercase;">Duration</th>
+                            </tr>
+                        </thead>
+                        <tbody>${rowsHtml}</tbody>
+                    </table>
+                    <div style="text-align: right; border-top: 2px solid #e2e8f0; padding-top: 15px;">
+                        <div style="font-size: 10px; text-transform: uppercase; color: #64748b; font-weight: bold;">Total Duration</div>
+                        <div style="font-size: 24px; font-family: monospace; font-weight: bold; color: #0f172a; margin-top: 5px;">${total}</div>
+                        ${costInfo ? `<div style="font-size: 12px; color: #059669; margin-top: 5px;">Cost: <strong>${costInfo}</strong></div>` : ''}
+                        ${targetInfo ? `<div style="font-size: 12px; color: #2563eb; margin-top: 2px;">Remaining: <strong>${targetInfo}</strong></div>` : ''}
+                    </div>
+                    <div style="text-align: center; margin-top: 30px; font-size: 8px; color: #94a3b8; text-transform: uppercase;">Generated by TimeFlow Pro</div>
+                </div>
+            `;
         };
 
         // --- Main App Component ---
@@ -158,15 +173,13 @@
             const [sessions, setSessions] = useState(() => {
                 try {
                     const saved = localStorage.getItem('timeCalc_sessions');
-                    return saved ? JSON.parse(saved) : [{ id: generateId(), title: 'My Time Sheet', lastModified: now(), mode: 'hours', rows: [{ id: generateId(), operator: '+', value: '', label: '' }] }];
-                } catch(e) { return [{ id: generateId(), title: 'My Time Sheet', lastModified: now(), mode: 'hours', rows: [{ id: generateId(), operator: '+', value: '', label: '' }] }]; }
+                    return saved ? JSON.parse(saved) : [{ id: generateId(), title: 'My Time Sheet', lastModified: now(), mode: 'hours', hourlyRate: 0, targetTime: '', rows: [{ id: generateId(), operator: '+', value: '', label: '' }] }];
+                } catch(e) { return [{ id: generateId(), title: 'My Time Sheet', lastModified: now(), mode: 'hours', hourlyRate: 0, targetTime: '', rows: [{ id: generateId(), operator: '+', value: '', label: '' }] }]; }
             });
 
             const [activeSessionId, setActiveSessionId] = useState(() => localStorage.getItem('timeCalc_activeId') || sessions[0].id);
-            const [modals, setModals] = useState({ history: false, download: false });
+            const [modals, setModals] = useState({ history: false, download: false, settings: false });
             const [downloadTarget, setDownloadTarget] = useState(null);
-            
-            // Edit/Delete States
             const [editingId, setEditingId] = useState(null);
             const [editTitle, setEditTitle] = useState("");
             const [deletingId, setDeletingId] = useState(null);
@@ -179,25 +192,27 @@
                 return row.operator === '+' ? acc + seconds : acc - seconds;
             }, 0), [activeSession.rows]);
 
+            const targetSeconds = useMemo(() => timeToSeconds(activeSession.targetTime), [activeSession.targetTime]);
+            const remainingSeconds = targetSeconds - totalSeconds;
+            const progressPercent = targetSeconds > 0 ? Math.min(100, Math.max(0, (totalSeconds / targetSeconds) * 100)) : 0;
+            const totalCost = activeSession.hourlyRate > 0 ? ((totalSeconds / 3600) * activeSession.hourlyRate).toFixed(2) : 0;
+
             useEffect(() => {
                 localStorage.setItem('timeCalc_sessions', JSON.stringify(sessions));
                 localStorage.setItem('timeCalc_activeId', activeSessionId);
             }, [sessions, activeSessionId]);
 
             const updateSession = (id, fields) => setSessions(prev => prev.map(s => s.id === id ? { ...s, ...fields, lastModified: now() } : s));
-            
             const updateRow = (id, field, val) => {
                 const newRows = activeSession.rows.map(r => r.id === id ? { ...r, [field]: val } : r);
                 updateSession(activeSessionId, { rows: newRows });
             };
-            
             const addRow = () => {
                 const newId = generateId();
                 const newRows = [...activeSession.rows, { id: newId, operator: '+', value: '', label: '' }];
                 updateSession(activeSessionId, { rows: newRows });
                 setFocusId(newId);
             };
-            
             const removeRow = (id) => {
                 if (activeSession.rows.length > 1) {
                     const idx = activeSession.rows.findIndex(r => r.id === id);
@@ -206,27 +221,61 @@
                     if (idx > 0) setFocusId(newRows[idx - 1].id);
                 }
             };
-            
             const createNewSession = () => {
-                const newS = { id: generateId(), title: `Sheet ${sessions.length + 1}`, lastModified: now(), mode: 'hours', rows: [{ id: generateId(), operator: '+', value: '', label: '' }] };
+                const newS = { id: generateId(), title: `Sheet ${sessions.length + 1}`, lastModified: now(), mode: 'hours', hourlyRate: 0, targetTime: '', rows: [{ id: generateId(), operator: '+', value: '', label: '' }] };
                 setSessions([...sessions, newS]);
                 setActiveSessionId(newS.id);
             };
 
-            // Actions
             const startRename = (e, s) => { e.stopPropagation(); setEditingId(s.id); setEditTitle(s.title); };
             const saveRename = (e, id) => { e.stopPropagation(); if(editTitle.trim()) updateSession(id, { title: editTitle }); setEditingId(null); };
             const requestDelete = (e, id) => { e.stopPropagation(); if(sessions.length <= 1) return alert("Cannot delete the only sheet."); setDeletingId(id); };
             const confirmDelete = (e, id) => { e.stopPropagation(); const newS = sessions.filter(s => s.id !== id); setSessions(newS); if(activeSessionId === id) setActiveSessionId(newS[0].id); setDeletingId(null); };
             const openDownload = (e, s) => { e.stopPropagation(); setDownloadTarget(s); setModals({...modals, download: true}); };
             
+            // --- Download Handler with PDF ---
             const handleDownload = (fmt) => {
                 if(!downloadTarget) return;
                 const total = secondsToTime(downloadTarget.rows.reduce((acc, r) => r.operator==='+' ? acc+timeToSeconds(r.value) : acc-timeToSeconds(r.value), 0), downloadTarget.mode);
                 const fname = `${downloadTarget.title.replace(/\s+/g, '_')}_${now().slice(0,10)}`;
-                if(fmt === 'html') downloadFile(generateHTMLReport(downloadTarget, total), `${fname}.html`, 'text/html');
-                if(fmt === 'csv') downloadFile(generateCSV(downloadTarget, total), `${fname}.csv`, 'text/csv');
-                if(fmt === 'txt') downloadFile(generateTXT(downloadTarget, total), `${fname}.txt`, 'text/plain');
+                const costTxt = downloadTarget.hourlyRate ? `${downloadTarget.hourlyRate * (timeToSeconds(total)/3600)}` : null;
+                const targetTxt = downloadTarget.targetTime ? `${secondsToTime(timeToSeconds(downloadTarget.targetTime) - timeToSeconds(total), downloadTarget.mode)}` : null;
+                
+                if (fmt === 'pdf') {
+                    // Create a temporary element for PDF generation
+                    const element = document.createElement('div');
+                    element.innerHTML = generatePrintableHTML(downloadTarget, total, costTxt, targetTxt);
+                    document.body.appendChild(element);
+                    
+                    const opt = {
+                        margin: 10,
+                        filename: `${fname}.pdf`,
+                        image: { type: 'jpeg', quality: 0.98 },
+                        html2canvas: { scale: 2 },
+                        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+                    };
+                    
+                    // Generate PDF
+                    html2pdf().set(opt).from(element).save().then(() => {
+                        document.body.removeChild(element);
+                    });
+                }
+                else if(fmt === 'html') {
+                    const content = `<!DOCTYPE html><html><head><title>${downloadTarget.title}</title></head><body style="margin:0;padding:0;background:#f8fafc;">${generatePrintableHTML(downloadTarget, total, costTxt, targetTxt)}</body></html>`;
+                    downloadFile(content, `${fname}.html`, 'text/html');
+                }
+                else if(fmt === 'csv') {
+                    let csv = "No,Operator,Label,Duration\n";
+                    downloadTarget.rows.forEach((row, i) => { csv += `${i + 1},${row.operator},"${row.label || ''}",${row.value || '00:00:00'}\n`; });
+                    csv += `,,,Total: ${total}`;
+                    downloadFile(csv, `${fname}.csv`, 'text/csv');
+                }
+                else if(fmt === 'txt') {
+                    let txt = `TimeFlow Pro\nSheet: ${downloadTarget.title}\nDate: ${formatDate(downloadTarget.lastModified)}\n----------------\n`;
+                    downloadTarget.rows.forEach((row, i) => { txt += `${i + 1}. [${row.operator}] ${row.value.padEnd(10)} ${row.label || ''}\n`; });
+                    txt += `----------------\nTOTAL: ${total}`;
+                    downloadFile(txt, `${fname}.txt`, 'text/plain');
+                }
                 setModals({...modals, download: false});
             };
 
@@ -250,96 +299,113 @@
             };
 
             return (
-                <div className={`min-h-screen w-full flex justify-center items-start sm:items-center py-0 sm:py-8 transition-colors duration-300 ${theme.bg}`}>
-                    <div className={`w-full max-w-lg h-[100dvh] sm:h-[85vh] shadow-2xl flex flex-col relative overflow-hidden transition-all duration-300 border ${theme.card} sm:rounded-[2rem]`}>
+                <div className={`min-h-screen w-full flex justify-center items-start sm:items-center py-0 sm:py-6 transition-colors duration-300 ${theme.bg}`}>
+                    <div className={`w-full max-w-md h-[100dvh] sm:h-[80vh] shadow-2xl flex flex-col relative overflow-hidden transition-all duration-300 border ${theme.card} sm:rounded-[1.5rem]`}>
                         
-                        {/* Header - Made more compact */}
-                        <div className={`pt-4 pb-2 px-4 z-20 border-b shrink-0 flex flex-col gap-2 backdrop-blur-md bg-opacity-95 ${isDark ? 'border-slate-800 bg-slate-900/90' : 'border-gray-100 bg-white/90'}`}>
+                        {/* Header */}
+                        <div className={`pt-3 pb-2 px-3 z-20 border-b shrink-0 flex flex-col gap-2 backdrop-blur-md bg-opacity-95 ${isDark ? 'border-slate-800 bg-slate-900/90' : 'border-gray-100 bg-white/90'}`}>
                             <div className="flex justify-between items-center">
-                                <div className="flex-1 mr-3">
-                                    <div className="flex items-center gap-2 mb-1">
+                                <div className="flex-1 mr-2">
+                                    <div className="flex items-center gap-1.5 mb-0.5">
                                         <span className="text-blue-500">{Icons.clock}</span>
-                                        <span className={`text-[10px] font-bold tracking-widest uppercase ${theme.subText}`}>TimeFlow Pro</span>
+                                        <span className={`text-[9px] font-bold tracking-widest uppercase ${theme.subText}`}>TimeFlow</span>
                                     </div>
-                                    <input type="text" value={activeSession.title} onChange={(e) => updateSession(activeSessionId, { title: e.target.value })} className={`w-full text-lg font-bold bg-transparent outline-none border-b border-transparent focus:border-blue-500 transition-colors ${theme.text}`} placeholder="Sheet Name" />
+                                    <input type="text" value={activeSession.title} onChange={(e) => updateSession(activeSessionId, { title: e.target.value })} className={`w-full text-base font-bold bg-transparent outline-none border-b border-transparent focus:border-blue-500 transition-colors ${theme.text}`} placeholder="Sheet Name" />
                                 </div>
-                                <div className="flex gap-2">
-                                    <button onClick={() => setModals({ ...modals, history: true })} className={`w-9 h-9 rounded-full flex items-center justify-center transition-all active:scale-95 ${theme.btn}`}>{Icons.folder}</button>
-                                    <button onClick={() => setIsDark(!isDark)} className={`w-9 h-9 rounded-full flex items-center justify-center transition-all active:scale-95 ${isDark ? 'bg-slate-800 text-yellow-400' : 'bg-orange-100 text-orange-500'}`}>{isDark ? Icons.moon : Icons.sun}</button>
+                                <div className="flex gap-1.5">
+                                    <button onClick={() => setModals({ ...modals, settings: true })} className={`w-8 h-8 rounded-full flex items-center justify-center transition-all active:scale-95 ${theme.btn}`}>{Icons.settings}</button>
+                                    <button onClick={() => setModals({ ...modals, history: true })} className={`w-8 h-8 rounded-full flex items-center justify-center transition-all active:scale-95 ${theme.btn}`}>{Icons.folder}</button>
+                                    <button onClick={() => setIsDark(!isDark)} className={`w-8 h-8 rounded-full flex items-center justify-center transition-all active:scale-95 ${isDark ? 'bg-slate-800 text-yellow-400' : 'bg-orange-100 text-orange-500'}`}>{isDark ? Icons.moon : Icons.sun}</button>
                                 </div>
                             </div>
-                            <div className={`p-1 rounded-xl flex border ${isDark ? 'bg-slate-950 border-slate-800' : 'bg-gray-100 border-gray-200'}`}>
+                            <div className={`p-0.5 rounded-lg flex border ${isDark ? 'bg-slate-950 border-slate-800' : 'bg-gray-100 border-gray-200'}`}>
                                 {['hours', 'minutes'].map((m) => (
-                                    <button key={m} onClick={() => updateSession(activeSessionId, { mode: m })} className={`flex-1 py-1.5 rounded-lg text-[10px] sm:text-xs font-bold transition-all capitalize ${activeSession.mode === m ? (isDark ? 'bg-slate-800 text-blue-400 shadow-sm' : 'bg-white text-blue-600 shadow-sm') : theme.subText}`}>{m === 'hours' ? 'With Hours' : 'Minutes Only'}</button>
+                                    <button key={m} onClick={() => updateSession(activeSessionId, { mode: m })} className={`flex-1 py-1 rounded-md text-[10px] font-bold transition-all capitalize ${activeSession.mode === m ? (isDark ? 'bg-slate-800 text-blue-400 shadow-sm' : 'bg-white text-blue-600 shadow-sm') : theme.subText}`}>{m === 'hours' ? 'With Hours' : 'Minutes Only'}</button>
                                 ))}
                             </div>
                         </div>
 
                         {/* Content */}
-                        <div className="flex-1 overflow-y-auto px-3 py-3 custom-scrollbar relative pb-32">
+                        <div className="flex-1 overflow-y-auto px-2 py-2 custom-scrollbar relative pb-40">
                             {activeSession.rows.map((row, index) => (
                                 <Row key={row.id} row={row} index={index} theme={theme} isDark={isDark} mode={activeSession.mode} updateRow={updateRow} removeRow={removeRow} addRow={addRow} setFocusId={setFocusId} isOnlyRow={activeSession.rows.length === 1} shouldFocus={focusId === row.id} />
                             ))}
-                            <div className="grid grid-cols-2 gap-2 mt-4">
-                                <button onClick={addRow} className={`py-3 rounded-xl border-2 border-dashed flex items-center justify-center gap-2 text-xs font-semibold transition-all active:scale-95 ${isDark ? 'border-slate-700 text-slate-500 hover:border-blue-500/50 hover:text-blue-400 hover:bg-slate-800' : 'border-gray-300 text-gray-500 hover:border-blue-400 hover:text-blue-600 hover:bg-blue-50'}`}>{Icons.plus} Add Row</button>
-                                <button onClick={createNewSession} className={`py-3 rounded-xl border border-transparent flex items-center justify-center gap-2 text-xs font-semibold transition-all shadow-lg active:scale-95 ${isDark ? 'bg-blue-600 text-white hover:bg-blue-500' : 'bg-black text-white hover:bg-gray-800'}`}>New Sheet</button>
+                            <div className="grid grid-cols-2 gap-2 mt-3 mb-10">
+                                <button onClick={addRow} className={`py-2.5 rounded-lg border border-dashed flex items-center justify-center gap-1.5 text-xs font-semibold transition-all active:scale-95 ${isDark ? 'border-slate-700 text-slate-500 hover:border-blue-500/50 hover:text-blue-400 hover:bg-slate-800' : 'border-gray-300 text-gray-500 hover:border-blue-400 hover:text-blue-600 hover:bg-blue-50'}`}>{Icons.plus} Row</button>
+                                <button onClick={createNewSession} className={`py-2.5 rounded-lg border border-transparent flex items-center justify-center gap-1.5 text-xs font-semibold transition-all shadow-sm active:scale-95 ${isDark ? 'bg-blue-600 text-white hover:bg-blue-500' : 'bg-black text-white hover:bg-gray-800'}`}>New Sheet</button>
                             </div>
                         </div>
 
-                        {/* Footer */}
-                        <div className={`absolute bottom-0 w-full p-5 backdrop-blur-xl border-t shadow-[0_-10px_40px_rgba(0,0,0,0.1)] z-30 transition-colors ${isDark ? 'bg-slate-900/90 border-slate-800' : 'bg-white/90 border-gray-200'}`}>
-                            <div className="flex justify-between items-end">
-                                <div><span className={`text-[10px] font-bold uppercase tracking-widest ${theme.subText}`}>Total Result</span></div>
+                        {/* Compact Footer */}
+                        <div className={`absolute bottom-0 w-full p-3 backdrop-blur-xl border-t shadow-[0_-10px_40px_rgba(0,0,0,0.1)] z-30 transition-colors ${isDark ? 'bg-slate-900/95 border-slate-800' : 'bg-white/95 border-gray-200'}`}>
+                            {(activeSession.targetTime || activeSession.hourlyRate > 0) && (
+                                <div className={`flex justify-between gap-4 mb-2 pb-2 border-b ${isDark ? 'border-slate-800' : 'border-gray-100'}`}>
+                                    {activeSession.hourlyRate > 0 && <div className="text-xs font-mono font-bold text-emerald-500">₹{totalCost}</div>}
+                                    {activeSession.targetTime && <div className={`text-xs font-mono font-bold ${remainingSeconds < 0 ? 'text-rose-400' : 'text-blue-500'}`}>{remainingSeconds < 0 ? '+' : '-'}{secondsToTime(remainingSeconds, activeSession.mode).replace(/^-/,'')}</div>}
+                                </div>
+                            )}
+                            {activeSession.targetTime && (
+                                <div className="w-full h-1 bg-gray-200 rounded-full overflow-hidden mb-2 dark:bg-gray-800">
+                                    <div className={`h-full progress-bar ${remainingSeconds < 0 ? 'bg-rose-500' : 'bg-blue-500'}`} style={{ width: `${progressPercent}%` }}></div>
+                                </div>
+                            )}
+                            <div className="flex justify-between items-center">
+                                <div><span className={`text-[9px] font-bold uppercase tracking-widest ${theme.subText}`}>Total</span></div>
                                 <button onClick={copyTotal} className="group relative text-right active:scale-95 transition-transform">
-                                    <div className={`text-5xl sm:text-6xl font-mono font-bold tracking-tighter ${totalSeconds < 0 ? 'text-rose-500' : theme.text}`}>{secondsToTime(totalSeconds, activeSession.mode)}</div>
-                                    {copied && <div className="absolute -top-12 right-0 bg-emerald-500 text-white text-xs py-1.5 px-3 rounded-lg font-bold animate-pop-in shadow-lg">Copied!</div>}
+                                    <div className={`text-4xl font-mono font-bold tracking-tighter ${totalSeconds < 0 ? 'text-rose-500' : theme.text}`}>{secondsToTime(totalSeconds, activeSession.mode)}</div>
+                                    {copied && <div className="absolute -top-8 right-0 bg-emerald-500 text-white text-[10px] py-1 px-2 rounded-md font-bold animate-pop-in">Copied!</div>}
                                 </button>
                             </div>
                         </div>
 
-                        {/* History Modal */}
-                        {modals.history && (
-                            <div className={`absolute inset-0 z-50 flex items-center justify-center backdrop-blur-sm animate-fade-in p-4 ${theme.modalOverlay}`}>
-                                <div className={`w-full max-w-sm max-h-[70vh] rounded-2xl shadow-2xl flex flex-col overflow-hidden animate-pop-in ${theme.modalBg} border ${isDark ? 'border-slate-700' : 'border-gray-200'}`}>
-                                    <div className={`p-4 border-b flex justify-between items-center ${isDark ? 'border-slate-700' : 'border-gray-100'}`}><h2 className={`font-bold text-lg ${theme.text}`}>Files</h2><button onClick={() => setModals({...modals, history: false})} className={`w-8 h-8 rounded-full flex items-center justify-center ${theme.btn}`}>{Icons.close}</button></div>
-                                    <div className="overflow-y-auto p-2 custom-scrollbar">
-                                        {sessions.map(s => (
-                                            <div key={s.id} onClick={() => { setActiveSessionId(s.id); setModals({...modals, history: false}); }} className={`p-3 mb-2 rounded-xl border cursor-pointer transition-all flex justify-between items-center group ${s.id === activeSessionId ? theme.activeItem : `border-transparent hover:border-gray-300 ${theme.rowHover}`}`}>
-                                                {editingId === s.id ? (
-                                                    <div className="flex-1 flex gap-2 items-center" onClick={e=>e.stopPropagation()}>
-                                                        <input autoFocus className={`flex-1 text-sm p-1 rounded border ${theme.inputBg} ${theme.text} outline-none`} value={editTitle} onChange={e=>setEditTitle(e.target.value)} onKeyDown={e=>e.key==='Enter'&&saveRename(e,s.id)} />
-                                                        <button onClick={e=>saveRename(e,s.id)} className="w-6 h-6 rounded flex items-center justify-center bg-emerald-500 text-white">{Icons.check}</button>
-                                                    </div>
-                                                ) : (
-                                                    <div className="overflow-hidden flex-1"><h3 className={`font-bold text-sm truncate ${theme.text}`}>{s.title}</h3><p className={`text-[10px] mt-0.5 ${theme.subText}`}>{formatDate(s.lastModified)}</p></div>
-                                                )}
-                                                <div className="flex gap-1 ml-2">
-                                                    {deletingId === s.id ? (
-                                                        <div className="flex gap-1" onClick={e=>e.stopPropagation()}><button onClick={e=>confirmDelete(e,s.id)} className="px-2 py-1 text-[10px] bg-red-500 text-white rounded font-bold">Delete?</button><button onClick={e=>{e.stopPropagation();setDeletingId(null)}} className="w-8 h-8 flex items-center justify-center rounded-lg text-gray-400 hover:bg-gray-100">{Icons.close}</button></div>
+                        {/* Modals (History, Settings, Download) */}
+                        {Object.keys(modals).map(key => modals[key] && (
+                            <div key={key} className={`absolute inset-0 z-50 flex items-center justify-center backdrop-blur-sm animate-fade-in p-4 ${theme.modalOverlay}`}>
+                                <div className={`w-full max-w-xs max-h-[70vh] rounded-2xl shadow-2xl flex flex-col overflow-hidden animate-pop-in ${theme.modalBg} border ${isDark ? 'border-slate-700' : 'border-gray-200'}`}>
+                                    <div className={`p-3 border-b flex justify-between items-center ${isDark ? 'border-slate-700' : 'border-gray-100'}`}>
+                                        <h2 className={`font-bold text-sm ${theme.text}`}>{key === 'history' ? 'Files' : key === 'download' ? 'Save As' : 'Settings'}</h2>
+                                        <button onClick={() => setModals({...modals, [key]: false})} className={`w-6 h-6 rounded-full flex items-center justify-center ${theme.btn}`}>{Icons.close}</button>
+                                    </div>
+                                    
+                                    {key === 'history' && (
+                                        <div className="overflow-y-auto p-2 custom-scrollbar">
+                                            {sessions.map(s => (
+                                                <div key={s.id} onClick={() => { setActiveSessionId(s.id); setModals({...modals, history: false}); }} className={`p-2 mb-1.5 rounded-lg border cursor-pointer transition-all flex justify-between items-center group ${s.id === activeSessionId ? theme.activeItem : `border-transparent hover:border-gray-300 ${theme.rowHover}`}`}>
+                                                    {editingId === s.id ? (
+                                                        <div className="flex-1 flex gap-2 items-center" onClick={e=>e.stopPropagation()}><input autoFocus className={`flex-1 text-xs p-1 rounded border ${theme.inputBg} ${theme.text} outline-none`} value={editTitle} onChange={e=>setEditTitle(e.target.value)} onKeyDown={e=>e.key==='Enter'&&saveRename(e,s.id)} /><button onClick={e=>saveRename(e,s.id)} className="w-6 h-6 rounded flex items-center justify-center bg-emerald-500 text-white">{Icons.check}</button></div>
                                                     ) : (
-                                                        editingId !== s.id && <><button onClick={e=>startRename(e,s)} className="w-8 h-8 flex items-center justify-center rounded-lg text-blue-500 hover:bg-blue-500/10">{Icons.edit}</button><button onClick={e=>openDownload(e,s)} className="w-8 h-8 flex items-center justify-center rounded-lg text-emerald-500 hover:bg-emerald-500/10">{Icons.download}</button><button onClick={e=>requestDelete(e,s.id)} className="w-8 h-8 flex items-center justify-center rounded-lg text-rose-500 hover:bg-rose-500/10">{Icons.trash}</button></>
+                                                        <div className="overflow-hidden flex-1"><h3 className={`font-bold text-xs truncate ${theme.text}`}>{s.title}</h3><p className={`text-[9px] mt-0.5 ${theme.subText}`}>{formatDate(s.lastModified)}</p></div>
                                                     )}
+                                                    <div className="flex gap-1 ml-1">
+                                                        {deletingId === s.id ? (
+                                                            <div className="flex gap-1" onClick={e=>e.stopPropagation()}><button onClick={e=>confirmDelete(e,s.id)} className="px-2 py-1 text-[10px] bg-red-500 text-white rounded font-bold">Delete?</button><button onClick={e=>{e.stopPropagation();setDeletingId(null)}} className="w-6 h-6 rounded text-gray-400 hover:bg-gray-100 flex items-center justify-center">{Icons.close}</button></div>
+                                                        ) : (
+                                                            editingId !== s.id && <><button onClick={e=>startRename(e,s)} className="w-7 h-7 flex items-center justify-center rounded-lg text-blue-500 hover:bg-blue-500/10">{Icons.edit}</button><button onClick={e=>openDownload(e,s)} className="w-7 h-7 flex items-center justify-center rounded-lg text-emerald-500 hover:bg-emerald-500/10">{Icons.download}</button><button onClick={e=>requestDelete(e,s.id)} className="w-7 h-7 flex items-center justify-center rounded-lg text-rose-500 hover:bg-rose-500/10">{Icons.trash}</button></>
+                                                        )}
+                                                    </div>
                                                 </div>
-                                            </div>
-                                        ))}
-                                    </div>
-                                </div>
-                            </div>
-                        )}
+                                            ))}
+                                        </div>
+                                    )}
 
-                        {/* Download Modal */}
-                        {modals.download && (
-                            <div className={`absolute inset-0 z-[60] flex items-end sm:items-center justify-center backdrop-blur-md animate-fade-in ${theme.modalOverlay}`}>
-                                <div className={`w-full sm:max-w-sm p-6 rounded-t-3xl sm:rounded-3xl shadow-2xl animate-pop-in ${theme.modalBg} border ${isDark ? 'border-slate-700' : 'border-gray-200'}`}>
-                                    <div className="flex justify-between items-center mb-6"><h3 className={`text-lg font-bold ${theme.text}`}>Download</h3><button onClick={() => setModals({...modals, download: false})} className={`w-8 h-8 rounded-full flex items-center justify-center ${theme.btn}`}>{Icons.close}</button></div>
-                                    <div className="grid gap-2">
-                                        <button onClick={() => handleDownload('html')} className={`p-3 rounded-xl flex items-center gap-3 border ${isDark ? 'bg-slate-800 border-slate-700 hover:border-blue-500' : 'bg-gray-50 border-gray-200 hover:border-blue-500'} group`}><div className="w-8 h-8 rounded-full bg-blue-500 text-white flex items-center justify-center shadow-lg">{Icons.download}</div><div className="text-left"><div className={`font-bold text-sm ${theme.text}`}>HTML Report</div><div className="text-[10px] text-gray-500">Interactive</div></div></button>
-                                        <button onClick={() => handleDownload('csv')} className={`p-3 rounded-xl flex items-center gap-3 border ${isDark ? 'bg-slate-800 border-slate-700 hover:border-emerald-500' : 'bg-gray-50 border-gray-200 hover:border-emerald-500'} group`}><div className="w-8 h-8 rounded-full bg-emerald-500 text-white flex items-center justify-center shadow-lg">{Icons.download}</div><div className="text-left"><div className={`font-bold text-sm ${theme.text}`}>Excel CSV</div><div className="text-[10px] text-gray-500">Spreadsheet</div></div></button>
-                                        <button onClick={() => handleDownload('txt')} className={`p-3 rounded-xl flex items-center gap-3 border ${isDark ? 'bg-slate-800 border-slate-700 hover:border-slate-500' : 'bg-gray-50 border-gray-200 hover:border-slate-500'} group`}><div className="w-8 h-8 rounded-full bg-slate-500 text-white flex items-center justify-center shadow-lg">{Icons.edit}</div><div className="text-left"><div className={`font-bold text-sm ${theme.text}`}>Plain Text</div><div className="text-[10px] text-gray-500">Simple Copy</div></div></button>
-                                    </div>
+                                    {key === 'settings' && (
+                                        <div className="p-4 space-y-3">
+                                            <div><label className={`text-[10px] font-bold uppercase tracking-wider block mb-1 ${theme.subText}`}>Hourly Rate</label><input type="number" placeholder="0.00" className={`w-full p-2 text-sm rounded-lg border outline-none ${theme.inputBg} ${theme.text}`} value={activeSession.hourlyRate || ''} onChange={e => updateSession(activeSessionId, { hourlyRate: parseFloat(e.target.value) })} /></div>
+                                            <div><label className={`text-[10px] font-bold uppercase tracking-wider block mb-1 ${theme.subText}`}>Target Time</label><input type="text" placeholder="HH:MM:SS" className={`w-full p-2 text-sm rounded-lg border outline-none ${theme.inputBg} ${theme.text}`} value={activeSession.targetTime || ''} onChange={e => updateSession(activeSessionId, { targetTime: e.target.value })} /></div>
+                                        </div>
+                                    )}
+
+                                    {key === 'download' && (
+                                        <div className="p-3 grid gap-2">
+                                            <button onClick={() => handleDownload('pdf')} className={`p-2 rounded-lg flex items-center gap-3 border ${isDark ? 'bg-slate-800 border-slate-700 hover:border-red-500' : 'bg-gray-50 border-gray-200 hover:border-red-500'} group`}><div className="w-8 h-8 rounded-full bg-red-500 text-white flex items-center justify-center shadow-lg">{Icons.pdf}</div><div className="text-left"><div className={`font-bold text-xs ${theme.text}`}>PDF Document</div><div className="text-[9px] text-gray-500">Printable & Shareable</div></div></button>
+                                            <button onClick={() => handleDownload('html')} className={`p-2 rounded-lg flex items-center gap-3 border ${isDark ? 'bg-slate-800 border-slate-700 hover:border-blue-500' : 'bg-gray-50 border-gray-200 hover:border-blue-500'} group`}><div className="w-8 h-8 rounded-full bg-blue-500 text-white flex items-center justify-center shadow-lg">{Icons.download}</div><div className="text-left"><div className={`font-bold text-xs ${theme.text}`}>HTML Report</div><div className="text-[9px] text-gray-500">Interactive Webpage</div></div></button>
+                                            <button onClick={() => handleDownload('csv')} className={`p-2 rounded-lg flex items-center gap-3 border ${isDark ? 'bg-slate-800 border-slate-700 hover:border-emerald-500' : 'bg-gray-50 border-gray-200 hover:border-emerald-500'} group`}><div className="w-8 h-8 rounded-full bg-emerald-500 text-white flex items-center justify-center shadow-lg">{Icons.download}</div><div className="text-left"><div className={`font-bold text-xs ${theme.text}`}>Excel CSV</div><div className="text-[9px] text-gray-500">Spreadsheet Data</div></div></button>
+                                            <button onClick={() => handleDownload('txt')} className={`p-2 rounded-lg flex items-center gap-3 border ${isDark ? 'bg-slate-800 border-slate-700 hover:border-slate-500' : 'bg-gray-50 border-gray-200 hover:border-slate-500'} group`}><div className="w-8 h-8 rounded-full bg-slate-500 text-white flex items-center justify-center shadow-lg">{Icons.edit}</div><div className="text-left"><div className={`font-bold text-xs ${theme.text}`}>Plain Text</div><div className="text-[9px] text-gray-500">Simple Copy</div></div></button>
+                                        </div>
+                                    )}
                                 </div>
                             </div>
-                        )}
+                        ))}
                     </div>
                 </div>
             );
@@ -360,15 +426,16 @@
                 if (e.key === '+' || e.key === '-') { e.preventDefault(); updateRow(row.id, 'operator', e.key === '+' ? '+' : '-'); }
             };
             return (
-                <div className={`flex items-center gap-2 mb-2 p-2 rounded-xl border border-transparent transition-all animate-slide-in group relative ${theme.rowHover}`}>
-                    <button onClick={() => updateRow(row.id, 'operator', row.operator === '+' ? '-' : '+')} tabIndex="-1" className={`w-9 h-9 shrink-0 rounded-lg flex items-center justify-center font-bold text-base shadow-sm transition-all active:scale-90 ${row.operator === '+' ? (isDark ? 'bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20' : 'bg-emerald-100 text-emerald-600') : (isDark ? 'bg-rose-500/10 text-rose-400 hover:bg-rose-500/20' : 'bg-rose-100 text-rose-600')}`}>{row.operator === '+' ? '+' : '−'}</button>
+                <div className={`flex items-center gap-2 mb-1.5 p-1.5 rounded-lg border border-transparent transition-all animate-slide-in group relative ${theme.rowHover}`}>
+                    <div className={`text-[9px] font-mono opacity-30 w-3 text-center ${theme.text}`}>{index + 1}</div>
+                    <button onClick={() => updateRow(row.id, 'operator', row.operator === '+' ? '-' : '+')} tabIndex="-1" className={`w-7 h-7 shrink-0 rounded-md flex items-center justify-center font-bold text-sm shadow-sm transition-all active:scale-90 ${row.operator === '+' ? (isDark ? 'bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20' : 'bg-emerald-100 text-emerald-600') : (isDark ? 'bg-rose-500/10 text-rose-400 hover:bg-rose-500/20' : 'bg-rose-100 text-rose-600')}`}>{row.operator === '+' ? '+' : '−'}</button>
                     <div className="flex-grow flex flex-col gap-0.5 overflow-hidden">
-                        <input type="text" placeholder="Label" className={`w-full text-xs bg-transparent border-b border-transparent focus:border-opacity-50 outline-none px-1 py-0.5 transition-colors ${theme.subText} ${isDark ? 'focus:border-slate-500' : 'focus:border-gray-400'}`} value={row.label || ''} onChange={(e) => updateRow(row.id, 'label', e.target.value)} />
+                        <input type="text" placeholder="Label" className={`w-full text-[10px] bg-transparent border-b border-transparent focus:border-opacity-50 outline-none px-1 py-0 transition-colors ${theme.subText} ${isDark ? 'focus:border-slate-500' : 'focus:border-gray-400'}`} value={row.label || ''} onChange={(e) => updateRow(row.id, 'label', e.target.value)} />
                         <div className="relative w-full">
-                            <input ref={inputRef} type="text" inputMode="numeric" placeholder={mode === 'hours' ? "00:00:00" : "00:00"} className={`w-full text-lg font-mono font-semibold p-1.5 rounded-lg outline-none transition-all tracking-wide shadow-sm border ${theme.inputBg} ${theme.text}`} value={localVal} onChange={(e) => setLocalVal(e.target.value)} onBlur={handleBlur} onKeyDown={onKeyDown} />
+                            <input ref={inputRef} type="text" inputMode="numeric" placeholder={mode === 'hours' ? "00:00:00" : "00:00"} className={`w-full text-base font-mono font-semibold p-1 rounded-md outline-none transition-all tracking-wide shadow-sm border ${theme.inputBg} ${theme.text}`} value={localVal} onChange={(e) => setLocalVal(e.target.value)} onBlur={handleBlur} onKeyDown={onKeyDown} />
                         </div>
                     </div>
-                    <button onClick={() => removeRow(row.id)} disabled={isOnlyRow} tabIndex="-1" className={`w-9 h-9 flex items-center justify-center rounded-lg transition-all ${isOnlyRow ? 'hidden' : `text-slate-500 hover:bg-red-500/10 hover:text-red-500`}`}>{Icons.close}</button>
+                    <button onClick={() => removeRow(row.id)} disabled={isOnlyRow} tabIndex="-1" className={`w-7 h-7 flex items-center justify-center rounded-md transition-all ${isOnlyRow ? 'hidden' : `text-slate-500 hover:bg-red-500/10 hover:text-red-500`}`}>{Icons.close}</button>
                 </div>
             );
         };
